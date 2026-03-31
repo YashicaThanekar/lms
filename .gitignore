@@ -21,6 +21,10 @@ instance/
 .env.*.local
 *.env
 
+# EXCEPT for .env.example (template for developers)
+!.env.example
+!backend/.env.example
+
 # SQLite database files
 *.db
 *.sqlite3
