@@ -461,59 +461,53 @@ const Admin = () => {
 
   const handleSendOtp = async (requestId) => {
     const token = getToken();
-    showConfirm(
-      "Send OTP",
-      "Send collection OTP to the student's college email for this request?",
-      async () => {
-        try {
-          const response = await fetch(
-            `http://127.0.0.1:5000/admin/send-otp/${requestId}`,
-            {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json",
-              },
-            },
-          );
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:5000/admin/send-otp/${requestId}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      );
 
-          const data = await response.json();
-          if (response.ok) {
-            if (data.dev_otp) {
-              setOtpCache((prev) => ({ ...prev, [requestId]: data.dev_otp }));
-            }
-
-            // Open OTP modal for entering OTP
-            setOtpModal({
-              isOpen: true,
-              requestId,
-              value: data.dev_otp || "",
-              isSubmitting: false,
-              error: "",
-            });
-
-            // Show success message without interfering with modal
-            const message =
-              data.otp_delivery === "demo"
-                ? `OTP sent successfully for presentation. Demo OTP: ${data.dev_otp}`
-                : data.message || "OTP sent";
-
-            setSuccessMsg(message);
-            setTimeout(() => setSuccessMsg(""), 3000);
-          } else if (isUnauthorized(response)) {
-            return;
-          } else {
-            showAlert("Error", data.message || "Failed to send OTP");
-          }
-        } catch (error) {
-          console.error("Error sending OTP:", error);
-          showAlert(
-            "Connection Error",
-            "Failed to send OTP. Please check your connection and try again.",
-          );
+      const data = await response.json();
+      if (response.ok) {
+        if (data.dev_otp) {
+          setOtpCache((prev) => ({ ...prev, [requestId]: data.dev_otp }));
         }
-      },
-    );
+
+        // Open OTP modal for entering OTP
+        setOtpModal({
+          isOpen: true,
+          requestId,
+          value: data.dev_otp || "",
+          isSubmitting: false,
+          error: "",
+        });
+
+        // Show success message without interfering with modal
+        const message =
+          data.otp_delivery === "demo"
+            ? `OTP sent successfully for presentation. Demo OTP: ${data.dev_otp}`
+            : data.message || "OTP sent";
+
+        setSuccessMsg(message);
+        setTimeout(() => setSuccessMsg(""), 3000);
+      } else if (isUnauthorized(response)) {
+        return;
+      } else {
+        showAlert("Error", data.message || "Failed to send OTP");
+      }
+    } catch (error) {
+      console.error("Error sending OTP:", error);
+      showAlert(
+        "Connection Error",
+        "Failed to send OTP. Please check your connection and try again.",
+      );
+    }
   };
 
   const handleVerifyOtp = (requestId) => {
@@ -923,79 +917,158 @@ const Admin = () => {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.6)",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
             zIndex: 10000,
+            backgroundColor: "rgba(0, 0, 0, 0.7)",
           }}
         >
           <div
             style={{
               backgroundColor: "#ffffff",
-              borderRadius: "12px",
-              padding: "28px",
+              borderRadius: "24px",
+              padding: "40px",
               minWidth: "380px",
               maxWidth: "460px",
-              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
+              boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
             }}
           >
-            <h3 style={{ margin: "0 0 10px 0", color: "#2c2c2c" }}>
-              Verify OTP
-            </h3>
-            <p style={{ margin: "0 0 16px 0", color: "#666" }}>
-              Enter OTP received by the student for request #
-              {otpModal.requestId}.
-            </p>
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              value={otpModal.value}
-              onChange={(e) =>
-                setOtpModal((prev) => ({
-                  ...prev,
-                  value: e.target.value,
-                  error: "",
-                }))
-              }
-              placeholder="Enter 6-digit OTP"
+            {/* Header Section */}
+            <div style={{ textAlign: "center", marginBottom: "28px" }}>
+              <h2
+                style={{
+                  fontSize: "24px",
+                  fontWeight: "700",
+                  color: "#1a1a1a",
+                  margin: "0 0 8px 0",
+                }}
+              >
+                Verify OTP
+              </h2>
+              <p
+                style={{
+                  fontSize: "14px",
+                  color: "#666",
+                  margin: "0",
+                  fontWeight: "500",
+                }}
+              >
+                Enter the OTP sent to verify this request
+              </p>
+            </div>
+
+            {/* OTP Input - Individual Digit Boxes */}
+            <div
+              className="otp-input-container"
               style={{
-                width: "100%",
-                padding: "12px 14px",
-                fontSize: "16px",
-                border: "1px solid #ccc",
-                borderRadius: "8px",
-                marginBottom: "10px",
+                display: "flex",
+                justifyContent: "center",
+                gap: "10px",
+                marginBottom: "20px",
               }}
-            />
+            >
+              {[0, 1, 2, 3, 4, 5].map((index) => (
+                <input
+                  key={index}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength="1"
+                  value={otpModal.value[index] || ""}
+                  onChange={(e) => {
+                    const newValue = otpModal.value.split("");
+                    newValue[index] = e.target.value.replace(/\D/g, ""); // Only allow digits
+                    setOtpModal((prev) => ({
+                      ...prev,
+                      value: newValue.join(""),
+                      error: "",
+                    }));
+                    // Auto-focus to next box
+                    if (e.target.value && index < 5) {
+                      const nextInput = document.querySelector(
+                        `.otp-box-${index + 1}`,
+                      );
+                      if (nextInput) nextInput.focus();
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    // Handle backspace to move to previous box
+                    if (
+                      e.key === "Backspace" &&
+                      !otpModal.value[index] &&
+                      index > 0
+                    ) {
+                      const prevInput = document.querySelector(
+                        `.otp-box-${index - 1}`,
+                      );
+                      if (prevInput) prevInput.focus();
+                    }
+                  }}
+                  className={`otp-box-${index}`}
+                  placeholder=""
+                  style={{
+                    width: "48px",
+                    height: "48px",
+                    fontSize: "20px",
+                    fontWeight: "600",
+                    border: "2px solid #D4C5A0",
+                    borderRadius: "10px",
+                    textAlign: "center",
+                    backgroundColor: "#FEF9F0",
+                    transition: "all 0.2s ease",
+                    cursor: "text",
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = "#63A088";
+                    e.target.style.boxShadow =
+                      "0 0 0 3px rgba(99, 160, 136, 0.1)";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "#D4C5A0";
+                    e.target.style.boxShadow = "none";
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Error Message */}
             {otpModal.error && (
               <div
                 style={{
-                  color: "#c0392b",
-                  marginBottom: "12px",
-                  fontSize: "14px",
+                  color: "#e74c3c",
+                  marginBottom: "16px",
+                  fontSize: "13px",
+                  fontWeight: "500",
+                  textAlign: "center",
                 }}
               >
-                {otpModal.error}
+                ❌ {otpModal.error}
               </div>
             )}
+
+            {/* Buttons */}
             <div
               style={{
                 display: "flex",
-                justifyContent: "flex-end",
-                gap: "10px",
+                justifyContent: "center",
+                gap: "12px",
+                marginTop: "28px",
               }}
             >
               <button
                 onClick={handleCloseOtpModal}
                 disabled={otpModal.isSubmitting}
                 style={{
-                  padding: "9px 16px",
-                  border: "1px solid #ccc",
-                  borderRadius: "6px",
-                  background: "#f4f4f4",
-                  cursor: "pointer",
+                  padding: "12px 32px",
+                  border: "2px solid #ddd",
+                  borderRadius: "12px",
+                  background: "#f8f8f8",
+                  color: "#666",
+                  cursor: otpModal.isSubmitting ? "not-allowed" : "pointer",
+                  fontWeight: "600",
+                  fontSize: "15px",
+                  transition: "all 0.3s ease",
+                  opacity: otpModal.isSubmitting ? 0.6 : 1,
                 }}
               >
                 Cancel
@@ -1004,16 +1077,20 @@ const Admin = () => {
                 onClick={handleSubmitOtpModal}
                 disabled={otpModal.isSubmitting}
                 style={{
-                  padding: "9px 16px",
+                  padding: "12px 32px",
                   border: "none",
-                  borderRadius: "6px",
-                  background: "#4caf50",
+                  borderRadius: "12px",
+                  background: "#63A088",
                   color: "#fff",
-                  cursor: "pointer",
+                  cursor: otpModal.isSubmitting ? "not-allowed" : "pointer",
                   fontWeight: "600",
+                  fontSize: "15px",
+                  transition: "all 0.3s ease",
+                  opacity: otpModal.isSubmitting ? 0.8 : 1,
+                  boxShadow: "0 2px 8px rgba(99, 160, 136, 0.3)",
                 }}
               >
-                {otpModal.isSubmitting ? "Verifying..." : "Verify OTP"}
+                {otpModal.isSubmitting ? "Verifying..." : "Verify"}
               </button>
             </div>
           </div>
