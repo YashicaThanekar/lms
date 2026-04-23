@@ -66,7 +66,6 @@ const Admin = () => {
   const [bookSearch, setBookSearch] = useState("");
   const [studentSearch, setStudentSearch] = useState("");
   const [analyticsBooks, setAnalyticsBooks] = useState([]);
-  const [availableBooks, setAvailableBooks] = useState([]);
   const [directIssueForm, setDirectIssueForm] = useState({
     moodle_id: "",
     book_id: "",
@@ -466,46 +465,6 @@ const Admin = () => {
     );
   };
 
-  const fetchAvailableBooks = async (searchQuery = "") => {
-    const token = getToken();
-    if (!token) {
-      navigate("/");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-    try {
-      const url = searchQuery
-        ? `http://127.0.0.1:5000/admin/available-books?search=${encodeURIComponent(searchQuery)}`
-        : "http://127.0.0.1:5000/admin/available-books";
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setAvailableBooks(data.books || []);
-      } else if (response.status === 401 || response.status === 403) {
-        localStorage.removeItem("user");
-        navigate("/");
-      } else {
-        const data = await response.json();
-        setError(data.message || "Failed to load available books");
-      }
-    } catch (error) {
-      console.error("Error fetching available books:", error);
-      setError("Failed to connect to server");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDirectIssue = async (e) => {
     e.preventDefault();
     const token = getToken();
@@ -535,7 +494,6 @@ const Admin = () => {
       if (response.ok) {
         setSuccessMsg(data.message);
         setDirectIssueForm({ moodle_id: "", book_id: "" });
-        fetchAvailableBooks();
         setTimeout(() => setSuccessMsg(""), 3000);
       } else if (isUnauthorized(response)) {
         return;
@@ -906,8 +864,6 @@ const Admin = () => {
       fetchStudents();
     } else if (activeTab === "analytics") {
       fetchAnalytics();
-    } else if (activeTab === "availableBooks") {
-      fetchAvailableBooks();
     }
   }, [activeTab]);
 
@@ -1265,14 +1221,6 @@ const Admin = () => {
               onClick={() => setActiveTab("directIssue")}
             >
               <i className="fa-solid fa-handshake"></i> Direct Issue
-            </button>
-            <button
-              className={
-                activeTab === "availableBooks" ? "menu-item active" : "menu-item"
-              }
-              onClick={() => setActiveTab("availableBooks")}
-            >
-              <i className="fa-solid fa-book-bookmark"></i> Available Books
             </button>
             <button
               className={
@@ -2615,7 +2563,9 @@ const Admin = () => {
                   >
                     <li>Enter the student's Moodle ID</li>
                     <li>Enter the Book ID from the "All Books" tab</li>
-                    <li>The system will check availability and issue the book</li>
+                    <li>
+                      The system will check availability and issue the book
+                    </li>
                     <li>Student can have maximum {MAX_BOOKS_ALLOWED} books</li>
                     <li>Books are issued for {MAX_DAYS_ALLOWED} days</li>
                   </ul>
@@ -2623,245 +2573,10 @@ const Admin = () => {
               </div>
             </div>
           )}
-
-          {/* Available Books Tab */}
-          {activeTab === "availableBooks" && (
-            <div className="table-content">
-              <h3 className="section-title">Available Books for Issue</h3>
-
-              <div style={{ marginBottom: "25px" }}>
-                <label
-                  style={{
-                    display: "block",
-                    fontWeight: "700",
-                    color: "#2c2c2c",
-                    marginBottom: "12px",
-                    fontSize: "17px",
-                  }}
-                >
-                  <i
-                    className="fa-solid fa-search"
-                    style={{ marginRight: "10px", color: "#63A088" }}
-                  ></i>
-                  Search Available Books
-                </label>
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    fetchAvailableBooks(bookSearch);
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      width: "100%",
-                      height: "44px",
-                      marginBottom: 0,
-                      border: "2px solid #63A088",
-                      borderRadius: "18px",
-                      background: "#FFFBF2",
-                    }}
-                  >
-                    <input
-                      type="text"
-                      placeholder="Search book name, publisher..."
-                      value={bookSearch}
-                      onChange={(e) => setBookSearch(e.target.value)}
-                      style={{
-                        flex: 1,
-                        padding: "14px 18px",
-                        fontSize: "16px",
-                        border: "none",
-                        borderTopLeftRadius: "16px",
-                        borderBottomLeftRadius: "16px",
-                        background: "#FFFBF2",
-                        color: "#bfa76a",
-                        outline: "none",
-                      }}
-                    />
-                    <button
-                      type="submit"
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "0 28px",
-                        fontSize: "17px",
-                        fontWeight: 700,
-                        backgroundColor: "#63A088",
-                        color: "#fff",
-                        border: "none",
-                        borderTopRightRadius: "16px",
-                        borderBottomRightRadius: "16px",
-                        cursor: "pointer",
-                        minWidth: "120px",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <i
-                        className="fa-solid fa-search"
-                        style={{ marginRight: 8, fontSize: "20px" }}
-                      ></i>{" "}
-                      Search
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              {error && (
-                <div
-                  style={{
-                    color: "red",
-                    marginBottom: "15px",
-                    padding: "10px",
-                    backgroundColor: "#ffebee",
-                  }}
-                >
-                  {error}
-                </div>
-              )}
-
-              {loading ? (
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "40px",
-                    fontSize: "1.2em",
-                    color: "#666",
-                  }}
-                >
-                  <i className="fa-solid fa-spinner fa-spin"></i> Loading
-                  available books...
-                </div>
-              ) : availableBooks.length === 0 ? (
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "40px",
-                    fontSize: "1.1em",
-                    color: "#888",
-                  }}
-                >
-                  <i className="fa-solid fa-inbox"></i>
-                  <p>
-                    {bookSearch
-                      ? "No available books found matching your search"
-                      : "Click search to view available books"}
-                  </p>
-                </div>
-              ) : (
-                <div className="table-card">
-                  <div
-                    style={{
-                      padding: "15px",
-                      backgroundColor: "#e8f5e9",
-                      borderRadius: "5px",
-                      marginBottom: "15px",
-                    }}
-                  >
-                    <strong style={{ fontSize: "1.1em", color: "#2e7d32" }}>
-                      <i className="fa-solid fa-check-circle"></i> Available:{" "}
-                      {availableBooks.length} books
-                    </strong>
-                  </div>
-                  <div
-                    className="table-wrapper"
-                    style={{ maxHeight: "600px", overflowY: "auto" }}
-                  >
-                    <table
-                      className="data-table"
-                      style={{ width: "100%", borderCollapse: "collapse" }}
-                    >
-                      <thead
-                        style={{
-                          position: "sticky",
-                          top: 0,
-                          backgroundColor: "#63A088",
-                          zIndex: 10,
-                        }}
-                      >
-                        <tr>
-                          <th style={{ padding: "15px", color: "#fff" }}>
-                            Book ID
-                          </th>
-                          <th style={{ padding: "15px", color: "#fff" }}>
-                            Book Name
-                          </th>
-                          <th style={{ padding: "15px", color: "#fff" }}>
-                            Publisher
-                          </th>
-                          <th
-                            style={{
-                              padding: "15px",
-                              color: "#fff",
-                              textAlign: "center",
-                            }}
-                          >
-                            Available
-                          </th>
-                          <th
-                            style={{
-                              padding: "15px",
-                              color: "#fff",
-                              textAlign: "center",
-                            }}
-                          >
-                            Total
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {availableBooks.map((book, index) => (
-                          <tr
-                            key={book.book_id}
-                            style={{
-                              backgroundColor:
-                                index % 2 === 0 ? "#ffffff" : "#f9f9f9",
-                              borderBottom: "1px solid #e0e0e0",
-                            }}
-                          >
-                            <td style={{ padding: "12px 15px" }}>
-                              {book.book_id}
-                            </td>
-                            <td style={{ padding: "12px 15px" }}>
-                              <strong>{book.book_name}</strong>
-                            </td>
-                            <td style={{ padding: "12px 15px" }}>
-                              {book.publisher || "N/A"}
-                            </td>
-                            <td
-                              style={{
-                                padding: "12px 15px",
-                                textAlign: "center",
-                                color: "#2e7d32",
-                                fontWeight: "bold",
-                              }}
-                            >
-                              {book.available_copies}
-                            </td>
-                            <td
-                              style={{
-                                padding: "12px 15px",
-                                textAlign: "center",
-                                fontWeight: "bold",
-                              }}
-                            >
-                              {book.total_copies}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </div>
   );
 };
-
 
 export default Admin;
