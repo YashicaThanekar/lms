@@ -3,7 +3,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 import "./Admin.css";
 import LazyImage from "./components/LazyImage";
 
-const Navbar = ({ onLogout }) => {
+const Navbar = ({
+  onLogout,
+  overdueItems,
+  overdueOpen,
+  overdueLoading,
+  onToggleOverdue,
+}) => {
+  const overdueCount = overdueItems.length;
   return (
     <nav
       className="navbar-style"
@@ -32,19 +39,61 @@ const Navbar = ({ onLogout }) => {
           PCT's A. P. Shah Institute of Technology
         </span>
       </div>
-      <button
-        className="logout-btn"
-        style={{
-          background: "#e0b96a",
-          color: "#2d3e2f",
-          fontWeight: 600,
-          fontSize: "1.1rem",
-          padding: "10px 28px",
-        }}
-        onClick={onLogout}
+      <div
+        className="navbar-actions"
+        style={{ display: "flex", alignItems: "center", gap: "16px" }}
       >
-        <i className="fa-solid fa-right-from-bracket"></i> Logout
-      </button>
+        {/* Notification bell to the left of logout */}
+        <div className="overdue-wrapper" style={{ position: "relative" }}>
+          <button
+            className={`overdue-bell${overdueCount > 0 ? " has-notifications" : ""}`}
+            onClick={onToggleOverdue}
+            aria-label="Overdue notifications"
+            style={{ position: "relative" }}
+          >
+            <i className="fa-solid fa-bell"></i>
+            {overdueCount > 0 && (
+              <span className="overdue-badge">{overdueCount}</span>
+            )}
+          </button>
+          {overdueOpen && (
+            <div className="overdue-dropdown">
+              {overdueLoading ? (
+                <div className="overdue-empty">Loading...</div>
+              ) : overdueCount === 0 ? (
+                <div className="overdue-empty">No overdue books</div>
+              ) : (
+                <div className="overdue-list">
+                  {overdueItems.map((item) => (
+                    <div key={item.transaction_id} className="overdue-item">
+                      <div className="overdue-student">
+                        {item.fullname} ({item.moodle_id})
+                      </div>
+                      <div className="overdue-book">{item.book_name}</div>
+                      <div className="overdue-meta">
+                        Due: {item.due_date} | {item.days_overdue} days late
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <button
+          className="logout-btn"
+          style={{
+            background: "#e0b96a",
+            color: "#2d3e2f",
+            fontWeight: 600,
+            fontSize: "1.1rem",
+            padding: "10px 28px",
+          }}
+          onClick={onLogout}
+        >
+          <i className="fa-solid fa-right-from-bracket"></i> Logout
+        </button>
+      </div>
     </nav>
   );
 };
@@ -98,6 +147,9 @@ const Admin = () => {
     isSubmitting: false,
     error: "",
   });
+  const [overdueItems, setOverdueItems] = useState([]);
+  const [overdueOpen, setOverdueOpen] = useState(false);
+  const [overdueLoading, setOverdueLoading] = useState(false);
 
   const showAlert = (title, message) => {
     setModal({
@@ -107,20 +159,6 @@ const Admin = () => {
       message,
       onConfirm: () => setModal((prev) => ({ ...prev, isOpen: false })),
       onCancel: null,
-    });
-  };
-
-  const showConfirm = (title, message, onConfirmCallback) => {
-    setModal({
-      isOpen: true,
-      type: "confirm",
-      title,
-      message,
-      onConfirm: () => {
-        setModal((prev) => ({ ...prev, isOpen: false }));
-        if (onConfirmCallback) onConfirmCallback();
-      },
-      onCancel: () => setModal((prev) => ({ ...prev, isOpen: false })),
     });
   };
 
@@ -150,6 +188,47 @@ const Admin = () => {
       return true;
     }
     return false;
+  };
+
+  const fetchOverdue = async () => {
+    const token = getToken();
+    if (!token) {
+      return;
+    }
+    try {
+      setOverdueLoading(true);
+      const response = await fetch("http://127.0.0.1:5000/admin/overdue", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setOverdueItems(data.overdue || []);
+      } else if (isUnauthorized(response)) {
+        return;
+      } else {
+        setOverdueItems([]);
+      }
+    } catch (err) {
+      console.error("Error fetching overdue list:", err);
+      setOverdueItems([]);
+    } finally {
+      setOverdueLoading(false);
+    }
+  };
+
+  const handleToggleOverdue = () => {
+    setOverdueOpen((prev) => {
+      const next = !prev;
+      if (next) {
+        fetchOverdue();
+      }
+      return next;
+    });
   };
 
   const fetchRequests = async () => {
@@ -904,6 +983,10 @@ const Admin = () => {
   };
 
   useEffect(() => {
+    fetchOverdue();
+  }, []);
+
+  useEffect(() => {
     if (activeTab === "allBooks") {
       fetchAllBooks();
     } else if (activeTab === "requests") {
@@ -935,7 +1018,13 @@ const Admin = () => {
 
   return (
     <div className="admin-page-wrapper">
-      <Navbar onLogout={handleLogout} />
+      <Navbar
+        onLogout={handleLogout}
+        overdueItems={overdueItems}
+        overdueOpen={overdueOpen}
+        overdueLoading={overdueLoading}
+        onToggleOverdue={handleToggleOverdue}
+      />
 
       {/* Custom Modal */}
       {modal.isOpen && (
@@ -2292,10 +2381,31 @@ const Admin = () => {
                           >
                             Available
                           </th>
+                          <th
+                            style={{
+                              padding: "15px",
+                              color: "#fff",
+                              fontWeight: "bold",
+                              fontSize: "14px",
+                              borderBottom: "3px solid #4e806c",
+                              textAlign: "center",
+                              width: "120px",
+                            }}
+                          >
+                            Status
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {analyticsBooks.slice(0, 20).map((book) => {
+                        {analyticsBooks.slice(0, 20).map((book, index) => {
+                          const demandLevel =
+                            index < 5 ? "High" : index < 10 ? "Medium" : "Low";
+                          const demandColor =
+                            demandLevel === "High"
+                              ? "#2e7d32"
+                              : demandLevel === "Medium"
+                                ? "#f9a825"
+                                : "#78909c";
                           return (
                             <tr
                               key={book.book_id}
@@ -2400,6 +2510,17 @@ const Admin = () => {
                                 }}
                               >
                                 {book.available_copies}
+                              </td>
+                              <td
+                                style={{
+                                  padding: "15px",
+                                  color: demandColor,
+                                  fontSize: "15px",
+                                  textAlign: "center",
+                                  fontWeight: "700",
+                                }}
+                              >
+                                {demandLevel}
                               </td>
                             </tr>
                           );

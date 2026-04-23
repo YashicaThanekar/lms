@@ -559,6 +559,41 @@ def return_book(transaction_id):
         conn.close()
 
 
+@admin.route("/admin/overdue", methods=["GET"])
+def get_overdue_books():
+    payload, error = verify_admin()
+    if error:
+        return jsonify({"message": error[0]}), error[1]
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute(
+            """
+            SELECT
+                t.transaction_id,
+                t.moodle_id,
+                u.fullname,
+                b.book_name,
+                DATE_FORMAT(t.due_date, '%Y-%m-%d') AS due_date,
+                DATEDIFF(CURDATE(), t.due_date) AS days_overdue
+            FROM transactions t
+            JOIN book_copies bc ON t.copy_id = bc.copy_id
+            JOIN books b ON bc.book_id = b.book_id
+            JOIN users u ON t.moodle_id = u.id
+            WHERE t.status = 'issued'
+              AND t.due_date < CURDATE()
+            ORDER BY t.due_date ASC
+            """
+        )
+
+        overdue = cursor.fetchall()
+        return jsonify({"overdue": overdue, "count": len(overdue)}), 200
+    finally:
+        conn.close()
+
+
 @admin.route("/admin/all-books", methods=["GET"])
 def get_all_books():
     payload, error = verify_admin()

@@ -30,7 +30,7 @@
 	display: flex;
 	align-items: center;
 	gap: 2rem;
-    height: 200px;
+    min-height: 200px;
 }
 
 .profile-avatar {
@@ -136,5 +136,61 @@
 }
 .profile-edit-cancel:hover {
 	background: #bdbdbd;
+}
+
+/* History Section */
+.history-loading,
+.history-empty {
+	color: #888;
+	font-size: 1rem;
+	padding: 1rem 0;
+}
+
+.history-table-wrapper {
+	width: 100%;
+	padding: 0 1.5rem 1.5rem 1.5rem;
+	box-sizing: border-box;
+	overflow-x: auto;
+}
+
+.history-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.95rem;
+}
+
+.history-table thead {
+	background-color: #63A088;
+	color: #fff;
+}
+
+.history-table th,
+.history-table td {
+	padding: 12px 14px;
+	text-align: left;
+	border-bottom: 1px solid #f6e7cb;
+}
+
+.history-table tbody tr:hover {
+	background-color: #FFFBF2;
+}
+
+.history-status {
+	display: inline-block;
+	padding: 4px 10px;
+	border-radius: 12px;
+	font-size: 0.8rem;
+	font-weight: 600;
+	text-transform: capitalize;
+}
+
+.history-status.returned {
+	background-color: #d4edda;
+	color: #155724;
+}
+
+.history-status.issued {
+	background-color: #fff3cd;
+	color: #856404;
 }
 

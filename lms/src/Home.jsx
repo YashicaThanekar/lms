@@ -58,6 +58,7 @@ const Home = () => {
   const [issuedBooks, setIssuedBooks] = useState([]);
   const [requestedBooks, setRequestedBooks] = useState([]);
   const [filteredBooks, setFilteredBooks] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [authorSearch, setAuthorSearch] = useState("");
   const [publisherSearch, setPublisherSearch] = useState("");
@@ -69,6 +70,7 @@ const Home = () => {
   const [notificationMsg, setNotificationMsg] = useState("");
   const [showWishlist, setShowWishlist] = useState(false);
   const [wishlistedBooks, setWishlistedBooks] = useState([]);
+  const [allPublishers, setAllPublishers] = useState([]);
 
   // Server-side search for books
   useEffect(() => {
@@ -77,6 +79,7 @@ const Home = () => {
     const searchBooks = async () => {
       if (searchQuery.trim() === "") {
         // If search is empty, reset to original books
+        setSearchResults([]);
         return;
       }
 
@@ -106,7 +109,7 @@ const Home = () => {
             total_copies: book.total_copies,
             image: book.cover_url || DEFAULT_COVER,
           }));
-          setFilteredBooks(transformedBooks);
+          setSearchResults(transformedBooks);
         }
       } catch (error) {
         console.error("Error searching books:", error);
@@ -238,15 +241,37 @@ const Home = () => {
   }, [showFilterDropdown, showUserDropdown]);
 
   useEffect(() => {
-    let filtered = books;
+    const fetchPublishers = async () => {
+      if (!userToken) return;
+      try {
+        const response = await fetch("http://127.0.0.1:5000/publishers", {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setAllPublishers(data.publishers || []);
+        }
+      } catch (error) {
+        console.error("Error fetching publishers:", error);
+      }
+    };
+    fetchPublishers();
+  }, [userToken]);
+
+  useEffect(() => {
+    let filtered = searchQuery.trim() !== "" ? searchResults : books;
     if (selectedFilter.type && selectedFilter.value) {
-      if (selectedFilter.type === "availability") {
+      if (selectedFilter.type === "publisher") {
         filtered = filtered.filter(
-          (book) => book.status === selectedFilter.value,
-        );
-      } else if (selectedFilter.type === "publisher") {
-        filtered = filtered.filter(
-          (book) => book.publisher === selectedFilter.value,
+          (book) =>
+            book.publisher &&
+            book.publisher
+              .toLowerCase()
+              .includes(selectedFilter.value.toLowerCase()),
         );
       }
     }
@@ -260,14 +285,9 @@ const Home = () => {
         if (aHasRealCover === bHasRealCover) return 0;
         return aHasRealCover ? -1 : 1;
       });
-      setFilteredBooks(filtered);
     }
-  }, [selectedFilter, books, searchQuery]);
-
-  const uniqueStatuses = [...new Set(books.map((book) => book.status))];
-  const uniquePublishers = [
-    ...new Set(books.map((book) => book.publisher).filter(Boolean)),
-  ];
+    setFilteredBooks(filtered);
+  }, [selectedFilter, books, searchQuery, searchResults]);
 
   const handleFilterClick = () => {
     setShowFilterDropdown(!showFilterDropdown);
@@ -289,8 +309,6 @@ const Home = () => {
   const handleMenuOptionClick = (option) => {
     if (option === "profile") {
       navigate("/profile");
-    } else if (option === "history") {
-      navigate("/history");
     }
     setShowUserDropdown(false);
   };
@@ -425,12 +443,6 @@ const Home = () => {
                 >
                   <i className="fa-solid fa-user"></i> Profile
                 </div>
-                <div
-                  className="user-dropdown-option"
-                  onClick={() => handleMenuOptionClick("history")}
-                >
-                  <i className="fa-solid fa-clock-rotate-left"></i> History
-                </div>
               </div>
             )}
           </div>
@@ -478,38 +490,11 @@ const Home = () => {
               <div className="filter-options">
                 <div
                   className="filter-option"
-                  onClick={() => handleFilterTypeClick("availability")}
-                >
-                  Availability
-                  {showSubFilter === "availability" && (
-                    <div className="sub-filter-options">
-                      {uniqueStatuses.map((status, index) => (
-                        <div
-                          key={index}
-                          className={`sub-filter-option ${
-                            selectedFilter.type === "availability" &&
-                            selectedFilter.value === status
-                              ? "selected"
-                              : ""
-                          }`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleFilterSelect("availability", status);
-                          }}
-                        >
-                          {status}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div
-                  className="filter-option"
                   onClick={() => handleFilterTypeClick("publisher")}
                 >
                   Publisher
                   {showSubFilter === "publisher" &&
-                    uniquePublishers.length > 0 && (
+                    allPublishers.length > 0 && (
                       <div className="sub-filter-options">
                         <input
                           type="text"
@@ -527,7 +512,7 @@ const Home = () => {
                             border: "1px solid #ccc",
                           }}
                         />
-                        {uniquePublishers
+                        {allPublishers
                           .filter((publisher) =>
                             publisher
                               .toLowerCase()

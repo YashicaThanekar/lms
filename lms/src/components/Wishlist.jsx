@@ -42,18 +42,21 @@ const Wishlist = ({ onClose, userToken }) => {
   const handleRemoveFromWishlist = async (bookId) => {
     try {
       setRemovingId(bookId);
-      const response = await fetch("http://127.0.0.1:5000/remove-from-wishlist", {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${userToken}`,
-          "Content-Type": "application/json",
+      const response = await fetch(
+        "http://127.0.0.1:5000/remove-from-wishlist",
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ book_id: bookId }),
         },
-        body: JSON.stringify({ book_id: bookId }),
-      });
+      );
 
       if (response.ok) {
         setWishlistItems((prev) =>
-          prev.filter((item) => item.book_id !== bookId)
+          prev.filter((item) => item.book_id !== bookId),
         );
       } else {
         const errData = await response.json().catch(() => ({}));
@@ -68,7 +71,10 @@ const Wishlist = ({ onClose, userToken }) => {
   };
 
   const renderStars = (rating) => {
-    const normalized = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+    const normalized = Math.max(
+      0,
+      Math.min(5, Math.round(Number(rating) || 0)),
+    );
     return (
       <span style={{ color: "#f4b400", fontSize: "0.9rem" }}>
         {Array.from({ length: 5 }, (_, index) => (
@@ -88,9 +94,7 @@ const Wishlist = ({ onClose, userToken }) => {
     <div className="wishlist-overlay" onClick={onClose}>
       <div className="wishlist-modal" onClick={(e) => e.stopPropagation()}>
         <div className="wishlist-header">
-          <h2>
-            <i className="fa-solid fa-heart"></i> My Wishlist
-          </h2>
+          <h2>My Wishlist</h2>
           <button className="wishlist-close" onClick={onClose}>
             <i className="fa-solid fa-xmark"></i>
           </button>
@@ -107,7 +111,6 @@ const Wishlist = ({ onClose, userToken }) => {
             </div>
           ) : wishlistItems.length === 0 ? (
             <div className="wishlist-empty">
-              <i className="fa-solid fa-heart" style={{ fontSize: "2rem" }}></i>
               <p>Your wishlist is empty</p>
               <p style={{ fontSize: "0.9rem", color: "#666" }}>
                 Add books you want to borrow when they become available
@@ -140,8 +143,8 @@ const Wishlist = ({ onClose, userToken }) => {
                         </span>
                       ) : (
                         <span className="availability-unavailable">
-                          <i className="fa-solid fa-clock"></i> Waiting for return
-                          (0/{item.total_copies})
+                          <i className="fa-solid fa-clock"></i> Waiting for
+                          return (0/{item.total_copies})
                         </span>
                       )}
                     </div>
@@ -159,9 +162,7 @@ const Wishlist = ({ onClose, userToken }) => {
                         <i className="fa-solid fa-spinner fa-spin"></i> Removing
                       </>
                     ) : (
-                      <>
-                        <i className="fa-solid fa-heart-crack"></i> Remove
-                      </>
+                      <>Remove</>
                     )}
                   </button>
                 </div>

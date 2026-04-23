@@ -84,9 +84,6 @@ const UserHistory = () => {
     if (option === "profile") {
       navigate("/profile");
     }
-    if (option === "history") {
-      navigate("/history");
-    }
     setShowUserDropdown(false);
   };
 
@@ -119,11 +116,11 @@ const UserHistory = () => {
             </span>
             {showUserDropdown && (
               <div className="user-dropdown">
-                <div className="user-dropdown-option" onClick={() => handleMenuOptionClick("profile")}>
+                <div
+                  className="user-dropdown-option"
+                  onClick={() => handleMenuOptionClick("profile")}
+                >
                   <i className="fa-solid fa-user"></i> Profile
-                </div>
-                <div className="user-dropdown-option" onClick={() => handleMenuOptionClick("history")}>
-                  <i className="fa-solid fa-clock-rotate-left"></i> History
                 </div>
               </div>
             )}
@@ -135,7 +132,9 @@ const UserHistory = () => {
       </nav>
 
       <div className="page-header">
-        <h2><i className="fa-solid fa-clock-rotate-left"></i> User History</h2>
+        <h2>
+          <i className="fa-solid fa-clock-rotate-left"></i> User History
+        </h2>
         <div style={{ display: "flex", gap: "10px" }}>
           <button className="header-btn" onClick={() => navigate("/home")}>
             <i className="fa-solid fa-arrow-left"></i> Back to Home
@@ -170,8 +169,14 @@ const UserHistory = () => {
                         <td>{item.request_id}</td>
                         <td>{item.book_name}</td>
                         <td>{item.publisher || "-"}</td>
-                        <td style={{ textTransform: "capitalize" }}>{item.status}</td>
-                        <td>{item.request_date ? new Date(item.request_date).toLocaleString() : "-"}</td>
+                        <td style={{ textTransform: "capitalize" }}>
+                          {item.status}
+                        </td>
+                        <td>
+                          {item.request_date
+                            ? new Date(item.request_date).toLocaleString()
+                            : "-"}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -200,10 +205,24 @@ const UserHistory = () => {
                       <tr key={item.transaction_id}>
                         <td>{item.transaction_id}</td>
                         <td>{item.book_name}</td>
-                        <td>{item.issue_date ? new Date(item.issue_date).toLocaleDateString() : "-"}</td>
-                        <td>{item.due_date ? new Date(item.due_date).toLocaleDateString() : "-"}</td>
-                        <td>{item.return_date ? new Date(item.return_date).toLocaleDateString() : "-"}</td>
-                        <td style={{ textTransform: "capitalize" }}>{item.status}</td>
+                        <td>
+                          {item.issue_date
+                            ? new Date(item.issue_date).toLocaleDateString()
+                            : "-"}
+                        </td>
+                        <td>
+                          {item.due_date
+                            ? new Date(item.due_date).toLocaleDateString()
+                            : "-"}
+                        </td>
+                        <td>
+                          {item.return_date
+                            ? new Date(item.return_date).toLocaleDateString()
+                            : "-"}
+                        </td>
+                        <td style={{ textTransform: "capitalize" }}>
+                          {item.status}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

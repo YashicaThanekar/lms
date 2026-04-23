@@ -12,6 +12,8 @@ const Profile = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editName, setEditName] = useState("");
   const [editDepartment, setEditDepartment] = useState("");
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,6 +24,31 @@ const Profile = () => {
       setName(userData.name || "");
       setDepartment(userData.department || "");
     }
+  }, []);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      const user = localStorage.getItem("user");
+      if (!user) return;
+      const userData = JSON.parse(user);
+      const token = userData?.token;
+      if (!token) return;
+      setHistoryLoading(true);
+      try {
+        const res = await fetch("http://127.0.0.1:5000/history", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setHistory(data.transaction_history || []);
+        }
+      } catch (e) {
+        console.error("Error fetching history:", e);
+      } finally {
+        setHistoryLoading(false);
+      }
+    };
+    fetchHistory();
   }, []);
 
   useEffect(() => {
@@ -146,7 +173,54 @@ const Profile = () => {
         {/* History Card */}
         <div className="profile-card profile-history-card">
           <h2 className="profile-history-heading">History</h2>
-          {/* Add history content here if needed */}
+          {historyLoading ? (
+            <div className="history-loading">
+              <i className="fa-solid fa-spinner fa-spin"></i> Loading history...
+            </div>
+          ) : history.length === 0 ? (
+            <div className="history-empty">No past borrowed books</div>
+          ) : (
+            <div className="history-table-wrapper">
+              <table className="history-table">
+                <thead>
+                  <tr>
+                    <th>Book</th>
+                    <th>Issue Date</th>
+                    <th>Due Date</th>
+                    <th>Return Date</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((item) => (
+                    <tr key={item.transaction_id}>
+                      <td>{item.book_name}</td>
+                      <td>
+                        {item.issue_date
+                          ? new Date(item.issue_date).toLocaleDateString()
+                          : "-"}
+                      </td>
+                      <td>
+                        {item.due_date
+                          ? new Date(item.due_date).toLocaleDateString()
+                          : "-"}
+                      </td>
+                      <td>
+                        {item.return_date
+                          ? new Date(item.return_date).toLocaleDateString()
+                          : "-"}
+                      </td>
+                      <td>
+                        <span className={`history-status ${item.status}`}>
+                          {item.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
         {showEditModal && (
           <div className="profile-edit-overlay">

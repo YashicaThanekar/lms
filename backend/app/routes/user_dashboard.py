@@ -117,7 +117,7 @@ def user_dashboard():
                 LEFT JOIN transactions t 
                     ON bc.copy_id = t.copy_id 
                     AND t.status = 'issued'
-                WHERE b.book_name LIKE %s
+                WHERE b.book_name LIKE %s OR b.publisher LIKE %s
                 GROUP BY 
                     b.book_id,
                     b.book_name,
@@ -126,7 +126,7 @@ def user_dashboard():
                     b.cover_url,
                     b.rating
                 LIMIT %s OFFSET %s
-            """, ("%" + searched + "%", limit, offset))
+            """, ("%" + searched + "%", "%" + searched + "%", limit, offset))
         all_books = cursor.fetchall()
     else:
         cache_key_books = f"books:{page}:"
@@ -508,3 +508,33 @@ def rate_book():
 
     finally:
         conn.close()
+
+
+@dashboard.route("/publishers", methods=["GET"])
+def get_publishers():
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"message": "token missing"}), 401
+
+    token = auth_header.split(" ")[1]
+
+    try:
+        payload = jwt.decode(
+            token,
+            current_app.config["SECRET_KEY"],
+            algorithms=["HS256"]
+        )
+    except jwt.ExpiredSignatureError:
+        return jsonify({"message": "token expired"}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({"message": "invalid token"}), 401
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT DISTINCT publisher FROM books WHERE publisher IS NOT NULL AND publisher != '' ORDER BY publisher"
+    )
+    publishers = [row[0] for row in cursor.fetchall()]
+    conn.close()
+
+    return jsonify({"publishers": publishers}), 200
